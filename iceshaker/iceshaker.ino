@@ -7,31 +7,35 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define SDA_PIN 4// GPIO21 -> SDA
-#define SCL_PIN 15// GPIO22 -> SCL
-#define SSD_ADDRESS 0x3c
-SSD1306  display(SSD_ADDRESS, SDA_PIN, SCL_PIN);
+// Define Variables ------------------------------
+#define LRELAY 13
+#define RRELAY 12
+#define MRELAY 14
+#define MODE 27
 
-
-#define DEVICE_NAME "Ice Shaker"
-
-#define USER_SERVICE_UUID "5f961675-3050-4cef-8a98-2e7f58fb4e43"
-
-#define WRITE_CHARACTERISTIC_UUID "E9062E71-9E62-4BC6-B0D3-35CDCD9B027B"
-#define NOTIFY_CHARACTERISTIC_UUID "62FBD229-6EDD-4D1A-B554-5C4E1BB29169"
-
-#define PSDI_SERVICE_UUID "e625601e-9e55-4597-a598-76018a0d293d"
-#define PSDI_CHARACTERISTIC_UUID "26e2b12b-85f0-4f3f-9fdd-91d114270e6e"
-
-#define RELAY 2
 #define ON 0
 #define OFF 1
-
+int auto_manual = 1; // 0 = auto, 1 = manual 
 int timeout=0;
 unsigned int low=60;
 unsigned int high=70;
 unsigned int cmd=0;
+float temperature;
 
+// OLED -------------------------------------------
+#define SDA_PIN 4   // GPIO21 -> SDA
+#define SCL_PIN 15  // GPIO22 -> SCL
+#define OLEDRST 16  // Reset
+#define SSD_ADDRESS 0x3c
+SSD1306  display(SSD_ADDRESS, SDA_PIN, SCL_PIN);
+
+// Line Thing -------------------------------------
+#define DEVICE_NAME "Ice Shaker"
+#define USER_SERVICE_UUID "5f961675-3050-4cef-8a98-2e7f58fb4e43"
+#define PSDI_SERVICE_UUID "e625601e-9e55-4597-a598-76018a0d293d"
+#define PSDI_CHARACTERISTIC_UUID "26e2b12b-85f0-4f3f-9fdd-91d114270e6e"
+#define WRITE_CHARACTERISTIC_UUID "E9062E71-9E62-4BC6-B0D3-35CDCD9B027B"
+#define NOTIFY_CHARACTERISTIC_UUID "62FBD229-6EDD-4D1A-B554-5C4E1BB29169"
 BLEServer* thingsServer;
 BLESecurity *thingsSecurity;
 BLEService* userService;
@@ -91,68 +95,6 @@ class writeCallback: public BLECharacteristicCallbacks {
   }
 };
 
-
-void setup() {
-  pinMode(16,OUTPUT);
-  pinMode(2,OUTPUT);
-  digitalWrite(16, LOW);    // set GPIO16 low to reset OLED
-  delay(50); 
-  digitalWrite(16, HIGH);   // while OLED is running, must set GPIO16 in hi
-  Serial.begin(115200);
-  Serial.println("ESP32 - OLED Display");
-  display.init();
-  display.flipScreenVertically();
-  display.setTextAlignment(TEXT_ALIGN_LEFT);
-  display.setFont(Open_Sans_Condensed_Light_20); // set a font
-  
-  BLEDevice::init("");
-  BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT_NO_MITM);
-
-  // Security Settings
-  BLESecurity *thingsSecurity = new BLESecurity();
-  thingsSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_ONLY);
-  thingsSecurity->setCapability(ESP_IO_CAP_NONE);
-  thingsSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
-
-  setupServices();
-  startAdvertising();
-}
-
-void loop() 
-{
-  displayData();
-  // Disconnection
-  if (!deviceConnected && oldDeviceConnected) {
-    delay(500); // Wait for BLE Stack to be ready
-    thingsServer->startAdvertising(); // Restart advertising
-    oldDeviceConnected = deviceConnected;
-    Serial.println("Disconnection & restart advertising");
-  }
-  // Connection
-  if (deviceConnected && !oldDeviceConnected) {
-    oldDeviceConnected = deviceConnected;
-    Serial.println("connected");
-  }
-
-   delay(500);
-  }
-
-
-/***************************************************
-* Display Data
-****************************************************/
-void displayData() 
-{
-  display.clear();   // clear the display
-  display.drawString(0, 0,  "Temp: ");
-  display.drawString(40, 0,  " 25.6C");  //  display.drawString(40, 0,  String(localTemp));
-  display.drawString(0, 32, "Time:  "); //  display.drawString(40, 32,  String(localHum));
-  display.drawString(40, 32,  "2304");
-  display.display();   // write the buffer to the display
-  delay(10);
-}
-
-
 void setupServices(void) {
   // Create BLE Server
   thingsServer = BLEDevice::createServer();
@@ -195,4 +137,80 @@ void startAdvertising(void) {
   thingsServer->getAdvertising()->addServiceUUID(userService->getUUID());
   thingsServer->getAdvertising()->setScanResponseData(scanResponseData);
   thingsServer->getAdvertising()->start();
+}
+// END Line Thing ----------------------------------------
+
+// Main ==================================================
+void setup() {
+  pinMode(OLEDRST,OUTPUT);
+  pinMode(LRELAY,OUTPUT);
+  pinMode(RRELAY,OUTPUT);
+  pinMode(MRELAY,OUTPUT);
+  pinMode(MODE,INPUT);
+  
+  digitalWrite(16, LOW);    // set GPIO16 low to reset OLED
+  delay(50); 
+  digitalWrite(16, HIGH);   // while OLED is running, must set GPIO16 in hi
+ 
+  Serial.begin(115200);
+  Serial.println("ESP32 - OLED Display");
+  display.init();
+  display.flipScreenVertically();
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
+  display.setFont(Open_Sans_Condensed_Light_20); // set a font
+  
+  BLEDevice::init("");
+  BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT_NO_MITM);
+
+  // Security Settings
+  BLESecurity *thingsSecurity = new BLESecurity();
+  thingsSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_ONLY);
+  thingsSecurity->setCapability(ESP_IO_CAP_NONE);
+  thingsSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+
+  setupServices();
+  startAdvertising();
+}
+
+// Loop ===============================================
+void loop() {
+
+  temperature = random(20,50);
+  displayData(temperature);
+
+  // Disconnection
+  if (!deviceConnected && oldDeviceConnected) {
+    delay(500); // Wait for BLE Stack to be ready
+    thingsServer->startAdvertising(); // Restart advertising
+    oldDeviceConnected = deviceConnected;
+    Serial.println("Disconnection & restart advertising");
+  }
+  // Connection
+  if (deviceConnected && !oldDeviceConnected) {
+    oldDeviceConnected = deviceConnected;
+    Serial.println("connected");
+  }
+
+   delay(500);
+}
+
+
+/***************************************************
+* Display Data
+****************************************************/
+void displayData(float t) 
+{
+  display.clear();   // clear the display
+  display.drawString(0, 0,  "Temp: ");
+  display.drawString(40, 0,  String(t)+"C");  //  display.drawString(40, 0,  String(localTemp));
+  if (auto_manual == 0) {
+    display.drawString(0, 32, "Time:  "); //  display.drawString(40, 32,  String(localHum));
+    display.drawString(40, 32,  "2304");
+  }
+  else {
+    display.drawString(0, 32, "** Manaul Mode **");    
+  }
+ 
+  display.display();   // write the buffer to the display
+  delay(10);
 }
