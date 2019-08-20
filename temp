@@ -1,0 +1,17 @@
+curl -X POST   https://api.line.me/things/v1/trial/products -H 'Authorization: Bearer {aRi0M7oQ4fLwaHgtUbrcxQ/mz3F2Vzzjmg+N2U38Micb8483W+PtS3YddzX0OplK28mgMlkOjXgaRaAHXhDmBQFNurjHdCQ9CwxxqTEiCRBBetYLtNXtASVETbqNEfnRQRmJQR7gpSCFOyYvGfHUG1GUYhWQfeY8sLGRXgo3xvw=}'   -H 'Content-Type: application/json' -d '{
+      "name":"Ice Shaker",
+      "liffId":"1610743821-l6D0pnmR"
+}'
+
+
+{
+    "id":"6569573533031249103",
+    "name":"Ice Shaker",
+    "type":"BLE",
+    "channelId":1610743821,
+    "actionUri":"line://app/1610743821-l6D0pnmR",
+    "serviceUuid":"5f961675-3050-4cef-8a98-2e7f58fb4e43",
+    "psdiServiceUuid":"e625601e-9e55-4597-a598-76018a0d293d",
+    "psdiCharacteristicUuid":"26e2b12b-85f0-4f3f-9fdd-91d114270e6e"
+}
+    
