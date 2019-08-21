@@ -143,10 +143,15 @@ class writeCallback: public BLECharacteristicCallbacks {
     char buf[100];
     rs.toCharArray(buf,rs.length() + 1);
     writeFile(SPIFFS, "/rotate.txt", buf);
+    Serial.print("rotate = ");Serial.println(buf);
+    
     ss.toCharArray(buf,ss.length() + 1);
     writeFile(SPIFFS, "/stop.txt", buf);
+    Serial.print("stop = ");Serial.println(buf);
+    
     us.toCharArray(buf,us.length() + 1);
     writeFile(SPIFFS, "/run.txt", buf);
+    Serial.print("run = ");Serial.println(buf);
   }
   
   String getValue(String data, char separator, int index) {

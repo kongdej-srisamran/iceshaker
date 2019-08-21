@@ -308,7 +308,6 @@ function liffToggleDeviceLedState(state) {
         cmd = '1';
     }
     else {
-        stime = '0';
         uiToggleLedButton(false);
         cmd='0';
     }
