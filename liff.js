@@ -261,7 +261,7 @@ function liffGetButtonStateCharacteristic(characteristic) {
             var value = String.fromCharCode.apply(null, val);
             var vals = value.split(',');
             temperature.innerText = vals[0]+'C';
-            timeout.innerText = vals[1]+' s';
+            timeout.innerText = vals[1];
             var relaystatus = vals[2];
             var m = vals[3];
             var timeouts = parseInt(vals[1]);
