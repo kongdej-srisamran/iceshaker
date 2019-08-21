@@ -358,11 +358,11 @@ void loop() {
 void displayData(float t)  {
   display.clear();                            // clear the display
   display.drawString(0, 0,  "Temp: ");
-  display.drawString(40, 0,  String(t)+"C"); 
+  display.drawString(43, 0,  String(t)+" C"); 
   if (auto_manual == 0) {
-    if (timeout < u_time) {
+    if (timeout > 0) {
       display.drawString(0, 32, "Shake:  ");     ;
-      display.drawString(41, 32,  String(timeout));
+      display.drawString(43, 32,  String(timeout));
     }
     else {
       display.drawString(0, 32, "** Auto Mode **");        
