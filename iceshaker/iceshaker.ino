@@ -10,33 +10,27 @@
 #include "SPIFFS.h"
 
 // Define Variables ------------------------------
+
+#define FORMAT_SPIFFS_IF_FAILED true
 #define LRELAY 13
 #define RRELAY 12
 #define MRELAY 14
 #define MODE 26
+
 #define DS18PIN 27
 OneWire oneWire(DS18PIN);
 DallasTemperature sensors(&oneWire);
 
-#define ON 0
-#define OFF 1
-int auto_manual = 1; // 0 = auto, 1 = manual 
+int auto_manual = 1;        // 0 = auto, 1 = manual 
 int timeout=0;
 char rotate_time[] = "500"; // rotation time in ms
 char stop_time[]   = "1000";// stop time in ms
 char run_time[]    = "20";  // total run tim in minute
-int r_time,s_time,u_time;
-int r = 0;
-int l = 0;
-int relaystatus = 0;
-
-unsigned long previousMillis = 0;        // will store last time LED was updated
-const long interval = 1000;  
-
+unsigned int r_time,s_time,u_time;   // delay time from spiffs or line thing
+unsigned int relaystatus = 0;
 unsigned int cmd=0;
 float temperature;
-#define FORMAT_SPIFFS_IF_FAILED true
-
+unsigned long previousMillis = 0;        // will store last time LED was updated
 
 // OLED -------------------------------------------
 #define SDA_PIN 4   // GPIO21 -> SDA
@@ -56,16 +50,9 @@ int readFile(fs::FS &fs, const char * path){
         return 0;
     }
 
-    Serial.println("- read from file:");
-    //while(file.available()){
-   //     Serial.write(file.read());
-        //return file.read();
-    //}
     while(file.available()) {
-      //Lets read line by line from the file
       line = file.readStringUntil('\n');
     }
-    Serial.println(line);
     return line.toInt();
 }
 
@@ -95,7 +82,8 @@ void deleteFile(fs::FS &fs, const char * path){
 int getSPIFF(char* file, char* val) {
   int d = readFile(SPIFFS, file); 
   if ( d == 0) {
-    Serial.print("data init = ");Serial.println(val);
+    Serial.print("data init = ");
+    Serial.println(val);
     writeFile(SPIFFS, file, val);
     return 0;
   }
@@ -228,65 +216,78 @@ void onRelay(int n) {
   if (n == RRELAY) {
     if (digitalRead(LRELAY) == LOW) {
       digitalWrite(RRELAY,HIGH); 
-      Serial.println(" = R ON");
+      //Serial.println(" = R ON");
     }
   }
   else if (n == LRELAY) {
     if (digitalRead(RRELAY) == LOW) {
       digitalWrite(LRELAY,HIGH);   
-      Serial.println(" = L ON");
+      //Serial.println(" = L ON");
     }    
   }
 }
+void runMotor() {
+  onRelay(LRELAY);
+  delay(r_time);
+  digitalWrite(LRELAY,LOW);
+  delay(s_time);
+  onRelay(RRELAY);
+  delay(r_time);
+  digitalWrite(RRELAY,LOW);
+  delay(s_time);  
+}
+//int ds = r_time*2 + s_time*2;
+/*
+int ds = s_time;
 
 void runMotor() {
 
    unsigned long currentMillis = millis();
-   int ds = r_time*2 + s_time*2;
+   
    
    if (r == 0 && currentMillis - previousMillis >= ds) {
-      Serial.println(currentMillis);
+      Serial.print(currentMillis - previousMillis); Serial.println(" = L ON");
       onRelay(LRELAY);
       r = 1;
    }
 
    if (r == 1 && l == 0 && currentMillis - previousMillis >= (ds + r_time)) {
-      Serial.println(currentMillis);
+      Serial.print(currentMillis - previousMillis); Serial.println(" = L OFF");
       digitalWrite(LRELAY,LOW);
-      Serial.println(" = L OFF");
       r = 2;
     }
 
    if (l == 0 && currentMillis - previousMillis >= (ds + r_time + s_time)) {
-     Serial.println(currentMillis);
+     Serial.print(currentMillis - previousMillis); Serial.println(" = R ON");
      onRelay(RRELAY);
      l = 1;
    }
+   
    if (l == 1 && currentMillis - previousMillis >= (ds + r_time*2+s_time)) {
-      Serial.println(currentMillis);
+      Serial.print(currentMillis - previousMillis); Serial.println(" = R OFF");
       digitalWrite(RRELAY,LOW);
-      Serial.println(" = R OFF");
       previousMillis = currentMillis;
       r = 0;
       l = 0;
     }
 }
-
+*/
 
 // Main ==================================================
 void setup() {
   Serial.begin(115200);
-  Serial.println("ESP32 - OLED Display");
   pinMode(OLEDRST,OUTPUT);
   pinMode(LRELAY,OUTPUT);
   pinMode(RRELAY,OUTPUT);
   pinMode(MRELAY,OUTPUT);
   pinMode(MODE,INPUT);
 
+  // set all relays to low
   digitalWrite(LRELAY,LOW);   
   digitalWrite(RRELAY,LOW);   
   digitalWrite(MRELAY,LOW);   
-      
+
+  // init oled 
   digitalWrite(OLEDRST, LOW);    // set GPIO16 low to reset OLED
   delay(50); 
   digitalWrite(OLEDRST, HIGH);   // while OLED is running, must set GPIO16 in hi
@@ -295,53 +296,75 @@ void setup() {
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.setFont(Open_Sans_Condensed_Light_20); // set a font
   
+  Serial.println("-- ICE Shaker v1.0 ---");
+  
   // Read settings
   if(!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)){
         Serial.println("SPIFFS Mount Failed");
         return;
   }
 
+  // -- uncomment to delete all files --
   //deleteFile(SPIFFS, "/rotate.txt");deleteFile(SPIFFS, "/stop.txt");deleteFile(SPIFFS, "/run.txt");
-  r_time  = getSPIFF("/rotate.txt", rotate_time); 
-  s_time  = getSPIFF("/stop.txt", stop_time); 
-  u_time  = getSPIFF("/run.txt", run_time); 
-  Serial.println("-------------------");Serial.println(r_time);Serial.println(s_time);Serial.println(u_time);
   
+  // get configuration from spiff
+  r_time = getSPIFF("/rotate.txt", rotate_time); 
+  s_time = getSPIFF("/stop.txt", stop_time); 
+  u_time = getSPIFF("/run.txt", run_time);
+  timeout =  u_time;
+  Serial.println("- Initial value -");
+  Serial.print("rotation time = ");Serial.println(r_time);
+  Serial.print("stop time = ");Serial.println(s_time);
+  Serial.print("run time = ");Serial.println(u_time);
+
+  //-- Line Things setup
   BLEDevice::init("");
   BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT_NO_MITM);
-  // Security Settings
   BLESecurity *thingsSecurity = new BLESecurity();
   thingsSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_ONLY);
   thingsSecurity->setCapability(ESP_IO_CAP_NONE);
   thingsSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
-
   setupServices();
   startAdvertising();
-  
+
+  //-- temperature sensor
   sensors.begin();
 }
 
 // Loop ===============================================
 void loop() {
   char buf[100];
-  auto_manual = digitalRead(MODE);
-  if (auto_manual == 1) {
+  
+  auto_manual = digitalRead(MODE); // select mode
+  
+  if (auto_manual == 1) { // Manual Mode
     runMotor(); 
   }
-  else {
-    if (cmd == 1) {
-      runMotor();
-      timeout++;
+  else {                  // Auto Mode
+    if (cmd == 1) {       // Start command
+      if (timeout <= 0 ) {
+        cmd = 0;
+        timeout =  u_time;
+      }
+      else {
+        runMotor();  
+        timeout--;
+      }
+    }
+    else {
+      digitalWrite(LRELAY,LOW);
+      digitalWrite(RRELAY,LOW);
     }
   }
 
-  sensors.requestTemperatures(); // Send the command to get temperatures
+  // Read temperature
+  sensors.requestTemperatures(); 
   temperature = sensors.getTempCByIndex(0);
   displayData(temperature);
   
+  // Send status to Line Things
   relaystatus =  (digitalRead(LRELAY) == HIGH || digitalRead(RRELAY) == HIGH) ? 1:0;
-  
-  sprintf(buf,"%0.2f,%d,%d,%d,%d,%d,%d", temperature,timeout,relaystatus,auto_manual,r_time,s_time,u_time);  
+  sprintf(buf,"%0.2f,%d,%d,%d,%d,%d,%d", temperature, timeout, relaystatus, auto_manual, r_time, s_time, u_time);  
   notifyCharacteristic->setValue(buf);
   notifyCharacteristic->notify();
   
@@ -355,23 +378,28 @@ void loop() {
   // Connection
   if (deviceConnected && !oldDeviceConnected) {
     oldDeviceConnected = deviceConnected;
-    Serial.println("connected");
+    Serial.println("Line connected");
   }
 }
 
-void displayData(float t) 
-{
-  display.clear();   // clear the display
+//== OLED display text 
+void displayData(float t)  {
+  display.clear();                            // clear the display
   display.drawString(0, 0,  "Temp: ");
-  display.drawString(40, 0,  String(t)+"C");  //  display.drawString(40, 0,  String(localTemp));
+  display.drawString(40, 0,  String(t)+"C"); 
   if (auto_manual == 0) {
-    display.drawString(0, 32, "Time:  "); //  display.drawString(40, 32,  String(localHum));
-    display.drawString(40, 32,  String(timeout));
+    if (timeout < u_time) {
+      display.drawString(0, 32, "Time:  ");     ;
+      display.drawString(40, 32,  String(timeout));
+    }
+    else {
+      display.drawString(0, 32, "** Auto Mode **");        
+    }
   }
   else {
     display.drawString(0, 32, "** Manaul Mode **");    
   }
  
-  display.display();   // write the buffer to the display
+  display.display();                            // write the buffer to the display
   delay(10);
 }
