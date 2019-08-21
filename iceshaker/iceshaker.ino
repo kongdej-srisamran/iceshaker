@@ -241,42 +241,6 @@ void runMotor() {
   digitalWrite(RRELAY,LOW);
   delay(s_time);  
 }
-//int ds = r_time*2 + s_time*2;
-/*
-int ds = s_time;
-
-void runMotor() {
-
-   unsigned long currentMillis = millis();
-   
-   
-   if (r == 0 && currentMillis - previousMillis >= ds) {
-      Serial.print(currentMillis - previousMillis); Serial.println(" = L ON");
-      onRelay(LRELAY);
-      r = 1;
-   }
-
-   if (r == 1 && l == 0 && currentMillis - previousMillis >= (ds + r_time)) {
-      Serial.print(currentMillis - previousMillis); Serial.println(" = L OFF");
-      digitalWrite(LRELAY,LOW);
-      r = 2;
-    }
-
-   if (l == 0 && currentMillis - previousMillis >= (ds + r_time + s_time)) {
-     Serial.print(currentMillis - previousMillis); Serial.println(" = R ON");
-     onRelay(RRELAY);
-     l = 1;
-   }
-   
-   if (l == 1 && currentMillis - previousMillis >= (ds + r_time*2+s_time)) {
-      Serial.print(currentMillis - previousMillis); Serial.println(" = R OFF");
-      digitalWrite(RRELAY,LOW);
-      previousMillis = currentMillis;
-      r = 0;
-      l = 0;
-    }
-}
-*/
 
 // Main ==================================================
 void setup() {
@@ -370,6 +334,8 @@ void loop() {
   // Send status to Line Things
   relaystatus =  (digitalRead(LRELAY) == HIGH || digitalRead(RRELAY) == HIGH) ? 1:0;
   sprintf(buf,"%0.2f,%d,%d,%d,%d,%d,%d", temperature, timeout, relaystatus, auto_manual, r_time, s_time, u_time);  
+  //Serial.printf("%0.2f,%d,%d,%d,%d,%d,%d\r\n", temperature, timeout, relaystatus, auto_manual, r_time, s_time, u_time);  
+  
   notifyCharacteristic->setValue(buf);
   notifyCharacteristic->notify();
   
@@ -394,8 +360,8 @@ void displayData(float t)  {
   display.drawString(40, 0,  String(t)+"C"); 
   if (auto_manual == 0) {
     if (timeout < u_time) {
-      display.drawString(0, 32, "Time:  ");     ;
-      display.drawString(40, 32,  String(timeout));
+      display.drawString(0, 32, "Shake:  ");     ;
+      display.drawString(41, 32,  String(timeout));
     }
     else {
       display.drawString(0, 32, "** Auto Mode **");        

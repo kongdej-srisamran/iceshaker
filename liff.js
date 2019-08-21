@@ -271,7 +271,7 @@ function liffGetButtonStateCharacteristic(characteristic) {
             else {
                 uiToggleStateButton(false);
             }
-            if (timeouts == 0) {
+            if (timeouts < 1) {
                 uiToggleLedButton(false);
             }
             else {
