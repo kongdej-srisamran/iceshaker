@@ -11,7 +11,7 @@ const PSDI_CHARACTERISTIC_UUID  = '26E2B12B-85F0-4F3F-9FDD-91D114270E6E';
 // UI settings
 let ledState = false; // true: LED on, false: LED off
 let clickCount = 0;
-
+let done = 0;
 // -------------- //
 // On window load //
 // -------------- //
@@ -283,10 +283,12 @@ function liffGetButtonStateCharacteristic(characteristic) {
             else {
                 mode.innerText = 'Auto';
             }
-            rtime.value = vals[4];
-            stime.value = vals[5];
-            utime.value = vals[6];
-            
+            if (done != 1) {
+                rtime.value = vals[4];
+                stime.value = vals[5];
+                utime.value = vals[6];
+                done = 1;
+            }
         });
     }).catch(error => {
         uiStatusError(makeErrorMsg(error), false);
