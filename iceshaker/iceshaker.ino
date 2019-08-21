@@ -280,7 +280,6 @@ void setup() {
   r_time = getSPIFF("/rotate.txt", rotate_time); 
   s_time = getSPIFF("/stop.txt", stop_time); 
   u_time = getSPIFF("/run.txt", run_time);
-  timeout =  u_time;
   Serial.println("- Initial value -");
   Serial.print("rotation time = ");Serial.println(r_time);
   Serial.print("stop time = ");Serial.println(s_time);
@@ -311,16 +310,18 @@ void loop() {
   }
   else {                  // Auto Mode
     if (cmd == 1) {       // Start command
-      if (timeout <= 0 ) {
-        cmd = 0;
+      if (timeout == 0 ) {
         timeout =  u_time;
       }
       else {
         runMotor();  
         timeout--;
+        if (timeout == 0) cmd = 0;
       }
     }
     else {
+      cmd = 0;
+      timeout = 0;
       digitalWrite(LRELAY,LOW);
       digitalWrite(RRELAY,LOW);
     }
