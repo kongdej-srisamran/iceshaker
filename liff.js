@@ -263,10 +263,10 @@ function liffGetButtonStateCharacteristic(characteristic) {
             var m = vals[3];
             var timeouts = parseInt(vals[1]);
             if (relaystatus == '1' ){
-                uiToggleStateButton(false);  
+                uiToggleStateButton(true);  
             }
             else {
-                uiToggleStateButton(true);
+                uiToggleStateButton(false);
             }
             if (timeouts == 0) {
                 uiToggleLedButton(false);
