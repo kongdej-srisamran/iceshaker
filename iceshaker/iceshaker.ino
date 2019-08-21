@@ -341,7 +341,7 @@ void loop() {
   
   relaystatus =  (digitalRead(LRELAY) == HIGH || digitalRead(RRELAY) == HIGH) ? 1:0;
   
-  sprintf(buf,"%0.2f,%d,%d,%d", temperature,timeout,relaystatus,auto_manual);  
+  sprintf(buf,"%0.2f,%d,%d,%d,%d,%d,%d", temperature,timeout,relaystatus,auto_manual,r_time,s_time,u_time);  
   notifyCharacteristic->setValue(buf);
   notifyCharacteristic->notify();
   

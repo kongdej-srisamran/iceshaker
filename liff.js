@@ -253,6 +253,9 @@ function liffGetButtonStateCharacteristic(characteristic) {
             const temperature = document.getElementById("temperature");
             const timeout = document.getElementById("timeout");
             const mode = document.getElementById("mode");
+            const utime = document.getElementById("utime");
+            const rtime = document.getElementById("rtime");
+            const stime = document.getElementById("stime");
             
             const val = (new Uint8Array(e.target.value.buffer));
             var value = String.fromCharCode.apply(null, val);
@@ -280,6 +283,9 @@ function liffGetButtonStateCharacteristic(characteristic) {
             else {
                 mode.innerText = 'Auto';
             }
+            rtime.value = vals[4];
+            stime.value = vals[5];
+            utime.value = vals[6];
             
         });
     }).catch(error => {
@@ -290,9 +296,9 @@ function liffGetButtonStateCharacteristic(characteristic) {
 function liffToggleDeviceLedState(state) {
     // on: 0x01
     // off: 0x00
+    var utime = document.getElementById("utime").value;
+    var rtime = document.getElementById("rtime").value;
     var stime = document.getElementById("stime").value;
-    var tlow = document.getElementById("tlow").value;
-    var thigh = document.getElementById("thigh").value;
     var cmd='0';
     
     if (state) {
@@ -305,7 +311,8 @@ function liffToggleDeviceLedState(state) {
         cmd='0';
     }
              
-    var msg = stime+","+tlow+","+thigh+","+cmd
+    //var msg = stime+","+tlow+","+thigh+","+cmd
+    var msg = utime+","+rtime+","+stime+","+cmd
     
     window.ledCharacteristic.writeValue(new TextEncoder().encode(msg))
     .catch(error => {
