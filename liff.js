@@ -314,7 +314,7 @@ function liffToggleDeviceLedState(state) {
     }
              
     //var msg = stime+","+tlow+","+thigh+","+cmd
-    var msg = utime+","+rtime+","+stime+","+cmd
+    var msg = utime+","+stime+","+rtime+","+cmd
     
     window.ledCharacteristic.writeValue(new TextEncoder().encode(msg))
     .catch(error => {
