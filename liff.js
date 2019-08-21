@@ -252,12 +252,15 @@ function liffGetButtonStateCharacteristic(characteristic) {
         characteristic.addEventListener('characteristicvaluechanged', e => { 
             const temperature = document.getElementById("temperature");
             const timeout = document.getElementById("timeout");
+            const mode = document.getElementById("mode");
+            
             const val = (new Uint8Array(e.target.value.buffer));
             var value = String.fromCharCode.apply(null, val);
             var vals = value.split(',');
             temperature.innerText = vals[0]+'C';
             timeout.innerText = vals[1]+' s';
             var relaystatus = vals[2];
+            var m = vals[3];
             var timeouts = parseInt(vals[1]);
             if (relaystatus == '1' ){
                 uiToggleStateButton(false);  
@@ -270,6 +273,12 @@ function liffGetButtonStateCharacteristic(characteristic) {
             }
             else {
                 uiToggleLedButton(true);
+            }
+            if (m == 1) {
+                mode.innerText = 'Manual';
+            }
+            else {
+                mode.innerText = 'Auto';
             }
             
         });
