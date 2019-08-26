@@ -21,16 +21,21 @@
 OneWire oneWire(DS18PIN);
 DallasTemperature sensors(&oneWire);
 
+// ===== Configuration ============================
 int auto_manual = 1;        // 0 = auto, 1 = manual 
-int timeout=0;
-char rotate_time[] = "500"; // rotation time in ms
-char stop_time[]   = "1000";// stop time in ms
-char run_time[]    = "20";  // total run tim in minute
-unsigned int r_time,s_time,u_time;   // delay time from spiffs or line thing
+char r_rotate_time[] = "500"; // rotation left time in ms
+char l_rotate_time[] = "500"; // rotation right time in ms
+char stop_time[]   = "1000";  // stop time in ms
+char no_shake[]    = "20";    // no of shake
+char settemp[] = "-7";          // set point 
+unsigned int r_time,l_time,s_time,n_shake; // settings
+float set_temp;
 unsigned int relaystatus = 0;
-unsigned int cmd=0;
+unsigned int cmd = 0;         // command from LIFF default stop
 float temperature;
-unsigned long previousMillis = 0;        // will store last time LED was updated
+int countdown = 0;            // count down shake
+//unsigned long previousMillis = 0;        // will store last time LED was updated
+// ================================================
 
 // OLED -------------------------------------------
 #define SDA_PIN 4   // GPIO21 -> SDA
@@ -70,6 +75,7 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
         Serial.println("- frite failed");
     }
 }
+
 void deleteFile(fs::FS &fs, const char * path){
     Serial.printf("Deleting file: %s\r\n", path);
     if(fs.remove(path)){
@@ -131,30 +137,50 @@ class writeCallback: public BLECharacteristicCallbacks {
     }   
     Serial.println(str);
     
-    String us = getValue(str, ',', 0);
-    u_time = us.toInt();
-    String ss = getValue(str, ',', 1);
-    s_time = ss.toInt();
-    String rs = getValue(str, ',', 2);
+    // retrieve configuration for LIFF and set global variables
+    String ls = getValue(str, ',', 0);   // left rotate
+    l_time = ls.toInt();
+    String rs = getValue(str, ',', 1);   // right rotate
     r_time = rs.toInt();
-    String c = getValue(str, ',', 3);
-    cmd = c.toInt();
-    
+    String ss = getValue(str, ',', 2);   // stop time
+    s_time = ss.toInt();
+    String ns = getValue(str, ',', 3);   // no shake
+    n_shake = ns.toInt();
+    String ts = getValue(str, ',', 4);   // set temp
+    set_temp = ts.toFloat();
+    String cs = getValue(str, ',', 5);   // command start/stop from LIFF
+    cmd = cs.toInt();
+   
+    // write to spiffs
     char buf[100];
-    rs.toCharArray(buf,rs.length() + 1);
-    writeFile(SPIFFS, "/rotate.txt", buf);
-    Serial.print("rotate = ");Serial.println(buf);
+    // left rotate
+    ls.toCharArray(buf,ls.length() + 1);
+    writeFile(SPIFFS, "/left_rotate.txt", buf);
+    Serial.print("left = ");Serial.println(buf);
     
+    // right rotate
+    rs.toCharArray(buf,rs.length() + 1);
+    writeFile(SPIFFS, "/right_rotate.txt", buf);
+    Serial.print("right = ");Serial.println(buf);
+
+    // stop time
     ss.toCharArray(buf,ss.length() + 1);
     writeFile(SPIFFS, "/stop.txt", buf);
     Serial.print("stop = ");Serial.println(buf);
-    
-    us.toCharArray(buf,us.length() + 1);
-    writeFile(SPIFFS, "/run.txt", buf);
-    Serial.print("run = ");Serial.println(buf);
-  }
+
+    // no shake
+    ns.toCharArray(buf,ns.length() + 1);
+    writeFile(SPIFFS, "/shake.txt", buf);
+    Serial.print("shake = ");Serial.println(buf);
+
+    // set temperature
+    ts.toCharArray(buf,ts.length() + 1);
+    writeFile(SPIFFS, "/settemp.txt", buf);
+    Serial.print("settemp = ");Serial.println(buf);
+}
   
-  String getValue(String data, char separator, int index) {
+// function split char
+String getValue(String data, char separator, int index) {
     int found = 0;
     int strIndex[] = { 0, -1 };
     int maxIndex = data.length() - 1;
@@ -215,32 +241,30 @@ void startAdvertising(void) {
 }
 // END Line Thing ----------------------------------------
 
-
-void onRelay(int n) {
-//  Serial.println(n);
+void onRelay(int n, int delaytime) {
   if (n == RRELAY) {
     if (digitalRead(LRELAY) == LOW) {
       digitalWrite(RRELAY,HIGH); 
-      //Serial.println(" = R ON");
+      delay(delaytime);
+      digitalWrite(RRELAY,LOW); 
     }
   }
   else if (n == LRELAY) {
     if (digitalRead(RRELAY) == LOW) {
       digitalWrite(LRELAY,HIGH);   
-      //Serial.println(" = L ON");
+      delay(delaytime);
+      digitalWrite(LRELAY,LOW);   
     }    
   }
 }
+
 void runMotor() {
-  onRelay(LRELAY);
-  delay(r_time);
-  digitalWrite(LRELAY,LOW);
+  onRelay(LRELAY,r_time);
   delay(s_time);
-  onRelay(RRELAY);
-  delay(r_time);
-  digitalWrite(RRELAY,LOW);
-  delay(s_time);  
+  onRelay(RRELAY,l_time);  
+  delay(s_time);
 }
+
 
 // Main ==================================================
 void setup() {
@@ -277,13 +301,17 @@ void setup() {
   //deleteFile(SPIFFS, "/rotate.txt");deleteFile(SPIFFS, "/stop.txt");deleteFile(SPIFFS, "/run.txt");
   
   // get configuration from spiff
-  r_time = getSPIFF("/rotate.txt", rotate_time); 
+  l_time = getSPIFF("/left_rotate.txt", l_rotate_time); 
+  r_time = getSPIFF("/right_rotate.txt", r_rotate_time); 
   s_time = getSPIFF("/stop.txt", stop_time); 
-  u_time = getSPIFF("/run.txt", run_time);
+  n_shake = getSPIFF("/shake.txt", no_shake);
+  set_temp = getSPIFF("/settemp.txt", settemp);
   Serial.println("- Initial value -");
-  Serial.print("rotation time = ");Serial.println(r_time);
+  Serial.print("left rotation = "); Serial.println(l_time);
+  Serial.print("right rotation = "); Serial.println(r_time);
   Serial.print("stop time = ");Serial.println(s_time);
-  Serial.print("run time = ");Serial.println(u_time);
+  Serial.print("shake = ");Serial.println(n_shake);
+  Serial.print("set temp. = ");Serial.println(set_temp);
 
   //-- Line Things setup
   BLEDevice::init("");
@@ -299,43 +327,68 @@ void setup() {
   sensors.begin();
 }
 
+//== OLED display text 
+void displayData(float t)  {
+  display.clear();                            // clear the display
+  display.drawString(0, 0,  "Temp: ");
+  display.drawString(43, 0,  String(t)+" C"); 
+  if (auto_manual == 0) {
+    if (countdown > 0) {
+      display.drawString(0, 32, "Shake:  ");     ;
+      display.drawString(43, 32,  String(countdown));
+    }
+    else {
+      display.drawString(0, 32, "** Auto Mode **");        
+    }
+  }
+  else {
+    display.drawString(0, 32, "** Manaul Mode **");    
+  }
+ 
+  display.display();                            // write the buffer to the display
+  delay(10);
+}
+
 // Loop ===============================================
 void loop() {
   char buf[100];
   
   auto_manual = digitalRead(MODE); // select mode
-  
-  if (auto_manual == 1) { // Manual Mode
-    runMotor(); 
-  }
-  else {                  // Auto Mode
-    if (cmd == 1) {       // Start command
-      if (timeout == 0 ) {
-        timeout =  u_time;
-      }
-      else {
-        runMotor();  
-        timeout--;
-        if (timeout == 0) cmd = 0;
-      }
-    }
-    else {
-      cmd = 0;
-      timeout = 0;
-      digitalWrite(LRELAY,LOW);
-      digitalWrite(RRELAY,LOW);
-    }
-  }
-
   // Read temperature
   sensors.requestTemperatures(); 
   temperature = sensors.getTempCByIndex(0);
   displayData(temperature);
   
+  if (auto_manual == 1) { // Manual Mode
+    runMotor(); 
+  }
+  else {                  // Auto Mode
+    if (cmd == 1) {       // if Start command
+      if (countdown == 0 ) {
+        countdown =  n_shake;
+      }
+      else {             // stop
+        if (temperature > set_temp) {
+          runMotor();  
+          countdown--;
+          if (countdown == 0) { // stop when countdown to zero
+            cmd = 0;
+          }
+        }
+      }
+    }
+    else {
+      cmd = 0;
+      countdown = 0;
+      digitalWrite(LRELAY,LOW);
+      digitalWrite(RRELAY,LOW);
+    }
+  }
+
   // Send status to Line Things
   relaystatus =  (digitalRead(LRELAY) == HIGH || digitalRead(RRELAY) == HIGH) ? 1:0;
-  sprintf(buf,"%0.2f,%d,%d,%d,%d,%d,%d", temperature, timeout, relaystatus, auto_manual, r_time, s_time, u_time);  
-  //Serial.printf("%0.2f,%d,%d,%d,%d,%d,%d\r\n", temperature, timeout, relaystatus, auto_manual, r_time, s_time, u_time);  
+  sprintf(buf,"%0.2f,%d,%d,%d,%d,%d,%d,%d,%0.2f", temperature, countdown, relaystatus, auto_manual, r_time, l_time, s_time, n_shake,set_temp);  
+  Serial.printf("%0.2f,%d,%d,%d,%d,%d,%d,%d,%0.2f", temperature, countdown, relaystatus, auto_manual, r_time, l_time, s_time, n_shake,set_temp);  
   
   notifyCharacteristic->setValue(buf);
   notifyCharacteristic->notify();
@@ -352,26 +405,4 @@ void loop() {
     oldDeviceConnected = deviceConnected;
     Serial.println("Line connected");
   }
-}
-
-//== OLED display text 
-void displayData(float t)  {
-  display.clear();                            // clear the display
-  display.drawString(0, 0,  "Temp: ");
-  display.drawString(43, 0,  String(t)+" C"); 
-  if (auto_manual == 0) {
-    if (timeout > 0) {
-      display.drawString(0, 32, "Shake:  ");     ;
-      display.drawString(43, 32,  String(timeout));
-    }
-    else {
-      display.drawString(0, 32, "** Auto Mode **");        
-    }
-  }
-  else {
-    display.drawString(0, 32, "** Manaul Mode **");    
-  }
- 
-  display.display();                            // write the buffer to the display
-  delay(10);
 }

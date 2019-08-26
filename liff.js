@@ -253,13 +253,16 @@ function liffGetButtonStateCharacteristic(characteristic) {
             const temperature = document.getElementById("temperature");
             const timeout = document.getElementById("timeout");
             const mode = document.getElementById("mode");
-            const utime = document.getElementById("utime");
+            const ltime = document.getElementById("ltime");
             const rtime = document.getElementById("rtime");
             const stime = document.getElementById("stime");
-            
+            const nshake = document.getElementById("nshake");
+            const stemp = document.getElementById("stemp");
+
             const val = (new Uint8Array(e.target.value.buffer));
             var value = String.fromCharCode.apply(null, val);
             var vals = value.split(',');
+            
             temperature.innerText = vals[0]+'C';
             timeout.innerText = vals[1];
             var relaystatus = vals[2];
@@ -283,10 +286,13 @@ function liffGetButtonStateCharacteristic(characteristic) {
             else {
                 mode.innerText = 'Auto';
             }
+            //3, r_time, l_time, s_time, n_shake,set_temp
             if (done != 1) {
                 rtime.value = vals[4];
-                stime.value = vals[5];
-                utime.value = vals[6];
+                ltime.value = vals[5];
+                stime.value = vals[6];
+                nshake.value = vals[7];
+                stemp.value = vals[8];
                 done = 1;
             }
         });
@@ -311,9 +317,24 @@ function liffToggleDeviceLedState(state) {
         uiToggleLedButton(false);
         cmd='0';
     }
-             
+    //3, r_time, l_time, s_time, n_shake,set_temp
+    /*
+     // retrieve configuration for LIFF and set global variables
+    String ls = getValue(str, ',', 0);   // left rotate
+    l_time = ls.toInt();
+    String rs = getValue(str, ',', 1);   // right rotate
+    r_time = rs.toInt();
+    String ss = getValue(str, ',', 2);   // stop time
+    s_time = ss.toInt();
+    String ns = getValue(str, ',', 4);   // no shake
+    n_shake = ns.toInt();
+    String ts = getValue(str, ',', 5);   // set temp
+    set_temp = ts.toFloat();
+    String cs = getValue(str, ',', 6);   // command start/stop from LIFF
+    cmd = cs.toInt();
+    */    
     //var msg = stime+","+tlow+","+thigh+","+cmd
-    var msg = utime+","+stime+","+rtime+","+cmd
+    var msg = ltime+","+rtime+","+stime+","+nshake+","+stemp+","+cmd
     
     window.ledCharacteristic.writeValue(new TextEncoder().encode(msg))
     .catch(error => {
