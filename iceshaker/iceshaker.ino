@@ -388,7 +388,7 @@ void loop() {
   // Send status to Line Things
   relaystatus =  (digitalRead(LRELAY) == HIGH || digitalRead(RRELAY) == HIGH) ? 1:0;
   sprintf(buf,"%0.2f,%d,%d,%d,%d,%d,%d,%d,%0.2f", temperature, countdown, relaystatus, auto_manual, r_time, l_time, s_time, n_shake,set_temp);  
-  Serial.printf("%0.2f,%d,%d,%d,%d,%d,%d,%d,%0.2f", temperature, countdown, relaystatus, auto_manual, r_time, l_time, s_time, n_shake,set_temp);  
+  //Serial.printf("%0.2f,%d,%d,%d,%d,%d,%d,%d,%0.2f\r\n", temperature, countdown, relaystatus, auto_manual, r_time, l_time, s_time, n_shake,set_temp);  
   
   notifyCharacteristic->setValue(buf);
   notifyCharacteristic->notify();

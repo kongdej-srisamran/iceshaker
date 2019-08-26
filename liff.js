@@ -304,9 +304,11 @@ function liffGetButtonStateCharacteristic(characteristic) {
 function liffToggleDeviceLedState(state) {
     // on: 0x01
     // off: 0x00
-    var utime = document.getElementById("utime").value;
+    var ltime = document.getElementById("ltime").value;
     var rtime = document.getElementById("rtime").value;
     var stime = document.getElementById("stime").value;
+    var nshake = document.getElementById("nshake").value;
+    var stemp = document.getElementById("stemp").value;
     var cmd='0';
     
     if (state) {
