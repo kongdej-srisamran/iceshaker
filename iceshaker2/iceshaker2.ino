@@ -1,5 +1,4 @@
-#include "modified_font.h"
-#include "SSD1306.h" 
+//#include "modified_font.h"
 #include <BLEServer.h>
 #include <BLEDevice.h>
 #include <BLEUtils.h>
@@ -8,14 +7,34 @@
 #include <DallasTemperature.h>
 #include "FS.h"
 #include "SPIFFS.h"
+// TFT
+#include <TFT_eSPI.h>
+#include <SPI.h>
+#include <Wire.h>
+
+#ifndef TFT_DISPOFF
+#define TFT_DISPOFF 0x28
+#endif
+
+#ifndef TFT_SLPIN
+#define TFT_SLPIN   0x10
+#endif
+
+#define TFT_MOSI            19
+#define TFT_SCLK            18
+#define TFT_CS              5
+#define TFT_DC              16
+#define TFT_RST             23
+
+#define TFT_BL          4  // Display backlight control pin
+TFT_eSPI tft = TFT_eSPI(320,240); // Invoke custom library
 
 // Define Variables ------------------------------
 
 #define FORMAT_SPIFFS_IF_FAILED true
-#define LRELAY 13
-#define RRELAY 12
-#define MRELAY 14
-#define MODE 26
+#define LRELAY 37
+#define RRELAY 38
+#define MODE 39
 
 #define DS18PIN 27
 OneWire oneWire(DS18PIN);
@@ -45,7 +64,7 @@ int countdown = 0;            // count down shake
 #define SSD_ADDRESS 0x3c
 //#define SSD_ADDRESS 0x78
 
-SSD1306  display(SSD_ADDRESS, SDA_PIN, SCL_PIN);
+//SSD1306  display(SSD_ADDRESS, SDA_PIN, SCL_PIN);
 
 // SPIFFS ---------------------------------------------
 int readFile(fs::FS &fs, const char * path){
@@ -275,26 +294,18 @@ void setup() {
   pinMode(OLEDRST,OUTPUT);
   pinMode(LRELAY,OUTPUT);
   pinMode(RRELAY,OUTPUT);
-  pinMode(MRELAY,OUTPUT);
   pinMode(MODE,INPUT);
+  
+  digitalWrite(RRELAY,HIGH);
+  digitalWrite(LRELAY,HIGH);
 
   // set all relays to low
   digitalWrite(LRELAY,LOW);   
   digitalWrite(RRELAY,LOW);   
-  digitalWrite(MRELAY,LOW);   
-
-  // init oled 
-  digitalWrite(OLEDRST, LOW);    // set GPIO16 low to reset OLED
-  delay(50); 
-  digitalWrite(OLEDRST, HIGH);   // while OLED is running, must set GPIO16 in hi
-  display.init();
-  display.flipScreenVertically();
-  display.setTextAlignment(TEXT_ALIGN_LEFT);
-  display.setFont(Open_Sans_Condensed_Light_20); // set a font
-  
   Serial.println("-- ICE Shaker v1.0 ---");
   
   // Read settings
+  //bool formatted = SPIFFS.format();
   if(!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)){
         Serial.println("SPIFFS Mount Failed");
         return;
@@ -328,28 +339,50 @@ void setup() {
 
   //-- temperature sensor
   sensors.begin();
+
+  // -- TFT Init
+  tft.init();
+  //tft.setSwapBytes(true);
+  tft.fillScreen(TFT_WHITE);
+  tft.setTextColor(TFT_BLACK,TFT_WHITE);
+  tft.setTextDatum(MC_DATUM);
+ 
+
+  if (TFT_BL > 0) { // TFT_BL has been set in the TFT_eSPI library in the User Setup file TTGO_T_Display.h
+       pinMode(TFT_BL, OUTPUT); // Set backlight pin to output mode
+      digitalWrite(TFT_BL, TFT_BACKLIGHT_ON); // Turn backlight on. TFT_BACKLIGHT_ON has been set in the TFT_eSPI library in the User Setup file TTGO_T_Display.h
+  }
+
+  
+  espDelay(1000);
+  
+ 
 }
 
-//== OLED display text 
+//== TFT display text 
 void displayData(float t)  {
-  display.clear();                            // clear the display
-  display.drawString(0, 0,  "Temp: ");
-  display.drawString(43, 0,  String(t)+" C"); 
+  tft.setTextColor(TFT_BLACK,TFT_WHITE);
+  tft.setTextSize(2);
+  tft.drawString("- EGAT Maker Club -", tft.width() / 2, 65); 
+  
+  tft.setTextSize(3);
+  tft.drawString("          ", tft.width() / 2, 100);
+  tft.setTextColor(TFT_MAROON,TFT_WHITE);
+  tft.drawString(String(t) + char(247) + "C", tft.width() / 2, 100);
+  tft.setTextColor(TFT_BLACK,TFT_WHITE);
+  tft.setTextSize(2); 
   if (auto_manual == 0) {
     if (countdown > 0) {
-      display.drawString(0, 32, "Shake:  ");     ;
-      display.drawString(43, 32,  String(countdown));
+      tft.drawString("            ", tft.width() / 2, 135);
+      tft.drawString("Shake:"+ String(countdown) ,tft.width() / 2, 135); 
     }
     else {
-      display.drawString(0, 32, "** Auto Mode **");        
+      tft.drawString("** Auto Mode **  ",  tft.width() / 2, 165);        
     }
   }
   else {
-    display.drawString(0, 32, "** Manaul Mode **");    
+     tft.drawString("** Manaul Mode **", tft.width() / 2, 165);
   }
- 
-  display.display();                            // write the buffer to the display
-  delay(10);
 }
 
 // Loop ===============================================
@@ -391,7 +424,7 @@ void loop() {
   // Send status to Line Things
   relaystatus =  (digitalRead(LRELAY) == HIGH || digitalRead(RRELAY) == HIGH) ? 1:0;
   sprintf(buf,"%0.2f,%d,%d,%d,%d,%d,%d,%d,%0.2f", temperature, countdown, relaystatus, auto_manual, r_time, l_time, s_time, n_shake,set_temp);  
-  //Serial.printf("%0.2f,%d,%d,%d,%d,%d,%d,%d,%0.2f\r\n", temperature, countdown, relaystatus, auto_manual, r_time, l_time, s_time, n_shake,set_temp);  
+  Serial.printf("%0.2f,%d,%d,%d,%d,%d,%d,%d,%0.2f\r\n", temperature, countdown, relaystatus, auto_manual, r_time, l_time, s_time, n_shake,set_temp);  
   
   notifyCharacteristic->setValue(buf);
   notifyCharacteristic->notify();
@@ -408,4 +441,10 @@ void loop() {
     oldDeviceConnected = deviceConnected;
     Serial.println("Line connected");
   }
+}
+
+void espDelay(int ms) {   
+    esp_sleep_enable_timer_wakeup(ms * 1000);
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH,ESP_PD_OPTION_ON);
+    esp_light_sleep_start();
 }
