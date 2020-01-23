@@ -131,9 +131,25 @@ function makeErrorMsg(errorObj) {
 // -------------- //
 
 function initializeApp() {
-    liff.init({liffId: "1610743821-l6D0pnmR"},() => initializeLiff(), error => uiStatusError(makeErrorMsg(error), false));
+    liff.init(() => initializeLiff("1610743821-l6D0pnmR"), error => uiStatusError(makeErrorMsg(error), false));
 }
 
+function initializeLiff(myLiffId) {
+    liff
+        .init({
+            liffId: myLiffId
+        })
+        .then(() => {
+            // start to use LIFF's api
+            initializeApp();
+        })
+        .catch((err) => {
+            document.getElementById("liffAppContent").classList.add('hidden');
+            document.getElementById("liffInitErrorMessage").classList.remove('hidden');
+        });
+}
+
+/*
 function initializeLiff() {
     liff.initPlugins(['bluetooth']).then(() => {
         
@@ -142,6 +158,7 @@ function initializeLiff() {
         uiStatusError(makeErrorMsg(error), false);
     });
 }
+*/
 
 function liffCheckAvailablityAndDo(callbackIfAvailable) {
     // Check Bluetooth availability
