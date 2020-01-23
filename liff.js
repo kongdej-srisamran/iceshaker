@@ -1,5 +1,7 @@
 // User service UUID: Change this to your generated service UUID
-const USER_SERVICE_UUID         = '5f961675-3050-4cef-8a98-2e7f58fb4e43'; // LED, Button
+//const USER_SERVICE_UUID         = '5f961675-3050-4cef-8a98-2e7f58fb4e43'; // LED, Button
+const USER_SERVICE_UUID         = '5629f372-59ce-4a90-80c0-de7bf976d8ae'; // LED, Button
+
 // User service characteristics
 const LED_CHARACTERISTIC_UUID   = 'E9062E71-9E62-4BC6-B0D3-35CDCD9B027B';
 const BTN_CHARACTERISTIC_UUID   = '62FBD229-6EDD-4D1A-B554-5C4E1BB29169';
@@ -15,8 +17,18 @@ let done = 0;
 // -------------- //
 // On window load //
 // -------------- //
-
-
+/*
+{
+    "id":"6625931681373772468",
+    "name":"ice-shaker",
+    "type":"BLE",
+    "channelId":1610743821,
+    "actionUri":"line://app/1610743821-l6D0pnmR",
+    "serviceUuid":"5629f372-59ce-4a90-80c0-de7bf976d8ae",
+    "psdiServiceUuid":"e625601e-9e55-4597-a598-76018a0d293d",
+    "psdiCharacteristicUuid":"26e2b12b-85f0-4f3f-9fdd-91d114270e6e"
+}
+*/
 
 window.onload = () => {
     initializeApp();
