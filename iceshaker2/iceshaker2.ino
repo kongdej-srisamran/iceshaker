@@ -32,8 +32,8 @@ TFT_eSPI tft = TFT_eSPI(320,240); // Invoke custom library
 // Define Variables ------------------------------
 
 #define FORMAT_SPIFFS_IF_FAILED true
-#define LRELAY 37
-#define RRELAY 38
+#define LRELAY 25
+#define RRELAY 26
 #define MODE 39
 
 #define DS18PIN 27
@@ -296,8 +296,7 @@ void setup() {
   pinMode(RRELAY,OUTPUT);
   pinMode(MODE,INPUT);
   
-  digitalWrite(RRELAY,HIGH);
-  digitalWrite(LRELAY,HIGH);
+ 
 
   // set all relays to low
   digitalWrite(LRELAY,LOW);   
@@ -388,6 +387,9 @@ void displayData(float t)  {
 // Loop ===============================================
 void loop() {
   char buf[100];
+
+  //digitalWrite(RRELAY,HIGH);
+  //digitalWrite(LRELAY,HIGH);
   
   auto_manual = digitalRead(MODE); // select mode
   // Read temperature
