@@ -122,7 +122,8 @@ int getSPIFF(char* file, char* val) {
 
 // Line Thing -------------------------------------
 #define DEVICE_NAME "Ice Shaker"
-#define USER_SERVICE_UUID "5f961675-3050-4cef-8a98-2e7f58fb4e43"
+//#define USER_SERVICE_UUID "5f961675-3050-4cef-8a98-2e7f58fb4e43"
+#define USER_SERVICE_UUID "5629f372-59ce-4a90-80c0-de7bf976d8ae"
 #define PSDI_SERVICE_UUID "e625601e-9e55-4597-a598-76018a0d293d"
 #define PSDI_CHARACTERISTIC_UUID "26e2b12b-85f0-4f3f-9fdd-91d114270e6e"
 #define WRITE_CHARACTERISTIC_UUID "E9062E71-9E62-4BC6-B0D3-35CDCD9B027B"
