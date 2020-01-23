@@ -141,7 +141,12 @@ function initializeLiff(myLiffId) {
         })
         .then(() => {
             // start to use LIFF's api
-            initializeApp();
+            //initializeApp();
+            iff.initPlugins(['bluetooth']).then(() => {
+                liffCheckAvailablityAndDo(() => liffRequestDevice());
+            }).catch(error => {
+                uiStatusError(makeErrorMsg(error), false);
+            });
         })
         .catch((err) => {
             document.getElementById("liffAppContent").classList.add('hidden');
