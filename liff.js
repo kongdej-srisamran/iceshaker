@@ -142,12 +142,16 @@ function initializeLiff(myLiffId) {
         .then(() => {
             // start to use LIFF's api
             //initializeApp();
-            
+            liff.bluetooth.getAvailability().then(available => {
+                alert('available?' + available);
+            });
+            /*
             liff.initPlugins(['bluetooth']).then(() => {
                 liffCheckAvailablityAndDo(() => liffRequestDevice());
             }).catch(error => {
                 uiStatusError(makeErrorMsg(error), false);
             });
+            */
             
         })
         .catch((err) => {
