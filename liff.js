@@ -31,7 +31,9 @@ let done = 0;
 */
 
 window.onload = () => {
-    initializeApp();
+    let myLiffId = "1610743821-l6D0pnmR"
+    initializeLiff(myLiffId)
+    //initializeApp();
 };
 
 // ----------------- //
